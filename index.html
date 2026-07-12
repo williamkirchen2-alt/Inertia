@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstick Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,18,400;1,18,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F2523;
+    --paper:#EFF1ED;
+    --card:#FBFBF9;
+    --line:#E0E2DD;
+    --muted:#6E736D;
+
+    --rest:#BE842E;
+    --rest-deep:#8F631C;
+    --rest-wash:#F7EFDD;
+
+    --motion:#3D6B6B;
+    --motion-deep:#2E5252;
+    --motion-wash:#E2EDEB;
+
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Newsreader",Georgia,serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html{-webkit-text-size-adjust:100%}
+
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.5;
+    font-size:16px;
+    padding:clamp(20px,5vw,64px) 20px 96px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .wrap{width:100%;max-width:700px}
+
+  /* ---------- eyebrow / labels ---------- */
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::after{content:"";flex:0 0 auto;width:28px;height:1px;background:var(--line)}
+
+  /* ---------- hero ---------- */
+  .hero{margin-bottom:52px}
+  .hero h1{
+    font-family:var(--serif);
+    font-style:italic;
+    font-weight:400;
+    font-size:clamp(34px,7vw,52px);
+    line-height:1.04;
+    letter-spacing:-.01em;
+    margin:18px 0 16px;
+  }
+  .hero h1 .flip{color:var(--muted)}
+  .hero .lede{
+    font-size:clamp(16px,2.4vw,18px);
+    color:var(--ink);
+    max-width:52ch;
+  }
+  .rule{
+    margin-top:22px;
+    padding:14px 16px;
+    border:1px solid var(--line);
+    border-left:2px solid var(--ink);
+    background:var(--card);
+    font-size:14.5px;
+    color:var(--ink);
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px 10px;
+  }
+  .rule b{font-weight:600}
+  .rule .arw{color:var(--muted);font-family:var(--mono)}
+
+  /* ---------- step scaffolding ---------- */
+  .step{margin-top:44px;transition:opacity .35s ease;scroll-margin-top:24px}
+  .step.locked{opacity:.32;pointer-events:none;filter:grayscale(.4)}
+  .step-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .step-num{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em;padding-top:2px}
+  .step-title{font-size:19px;font-weight:600;letter-spacing:-.01em}
+  .step-sub{font-size:14px;color:var(--muted);margin-top:2px}
+
+  /* ---------- pattern cards ---------- */
+  .patterns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pattern{
+    text-align:left;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:20px 18px 18px;
+    cursor:pointer;
+    font-family:inherit;
+    color:inherit;
+    transition:border-color .18s ease,background .18s ease,transform .12s ease;
+  }
+  .pattern:hover{transform:translateY(-2px)}
+  .pattern .glyph{display:block;height:44px;margin-bottom:14px}
+  .pattern .glyph svg{height:44px;width:auto}
+  .pt-state{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .pt-name{font-size:18px;font-weight:600;margin:5px 0 3px;letter-spacing:-.01em}
+  .pt-clin{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:11px}
+  .pt-sounds{font-size:13.5px;color:var(--ink);line-height:1.45}
+  .pt-sounds .lab{color:var(--muted);display:block;margin-bottom:3px;font-size:12px}
+
+  .pattern[data-key="rest"] .stroke{stroke:var(--rest)}
+  .pattern[data-key="rest"] .fillc{fill:var(--rest)}
+  .pattern[data-key="motion"] .stroke{stroke:var(--motion)}
+  .pattern[data-key="motion"] .fillc{fill:var(--motion)}
+
+  .pattern.on[data-key="rest"]{border-color:var(--rest);background:var(--rest-wash)}
+  .pattern.on[data-key="motion"]{border-color:var(--motion);background:var(--motion-wash)}
+  .pattern.on .pt-state{color:inherit}
+  .pattern.on[data-key="rest"] .pt-state{color:var(--rest-deep)}
+  .pattern.on[data-key="motion"] .pt-state{color:var(--motion-deep)}
+
+  /* ---------- levers ---------- */
+  .lever-note{font-size:13px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);letter-spacing:.02em}
+  .lever-note b{color:var(--ink)}
+  .levers{display:flex;flex-direction:column;gap:10px}
+  .lever{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    text-align:left;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    padding:15px 16px;
+    cursor:pointer;
+    font-family:inherit;
+    color:inherit;
+    width:100%;
+    transition:border-color .16s ease,background .16s ease;
+  }
+  .lever:hover{border-color:var(--muted)}
+  .lever .tick{
+    flex:0 0 auto;width:19px;height:19px;border-radius:5px;
+    border:1.6px solid var(--muted);margin-top:1px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .16s ease;
+  }
+  .lever .tick svg{width:11px;height:11px;opacity:0;transform:scale(.6);transition:all .16s ease}
+  .lever .l-name{font-size:15.5px;font-weight:600;letter-spacing:-.005em}
+  .lever .l-how{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.45}
+
+  body[data-pattern="rest"] .lever.on{border-color:var(--rest);background:var(--rest-wash)}
+  body[data-pattern="rest"] .lever.on .tick{border-color:var(--rest);background:var(--rest)}
+  body[data-pattern="motion"] .lever.on{border-color:var(--motion);background:var(--motion-wash)}
+  body[data-pattern="motion"] .lever.on .tick{border-color:var(--motion);background:var(--motion)}
+  .lever.on .tick svg{opacity:1;transform:scale(1);stroke:var(--card)}
+
+  .nudge{
+    font-size:12.5px;color:var(--rest-deep);font-family:var(--mono);
+    margin-top:10px;height:16px;opacity:0;transition:opacity .2s ease;letter-spacing:.02em;
+  }
+  .nudge.show{opacity:1}
+
+  /* ---------- situation ---------- */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+  .field label .opt{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.04em}
+  .field input{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    background:var(--card);border:1.5px solid var(--line);border-radius:8px;
+    padding:12px 14px;transition:border-color .16s ease;
+  }
+  .field input::placeholder{color:#A9ADA7}
+  .field input:focus{outline:none;border-color:var(--ink)}
+
+  /* ---------- output ---------- */
+  .out{
+    margin-top:44px;border:1.5px solid var(--ink);border-radius:12px;
+    background:var(--card);overflow:hidden;
+  }
+  .out-top{
+    padding:16px 22px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    background:var(--ink);color:var(--paper);
+  }
+  .out-top .ot-lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .out-top .ot-tag{font-family:var(--mono);font-size:11px;opacity:.7}
+  .out-body{padding:24px 22px 8px}
+
+  .empty{color:var(--muted);font-size:14.5px;line-height:1.55;padding:8px 0 20px}
+
+  .o-block{margin-bottom:20px}
+  .o-lab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .o-sit{font-family:var(--serif);font-style:italic;font-size:22px;line-height:1.2;color:var(--ink)}
+  .o-sit.ph{color:#B4B8B2}
+  .o-when{font-size:14px;color:var(--muted);margin-top:5px}
+  .o-pat{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+  .o-pat .dot{width:9px;height:9px;border-radius:50%}
+  .o-pat .cl{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:12px}
+  body[data-pattern="rest"] .o-pat .dot{background:var(--rest)}
+  body[data-pattern="motion"] .o-pat .dot{background:var(--motion)}
+
+  .o-levers{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .o-levers li{padding-left:16px;position:relative}
+  .o-levers li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%}
+  body[data-pattern="rest"] .o-levers li::before{background:var(--rest)}
+  body[data-pattern="motion"] .o-levers li::before{background:var(--motion)}
+  .o-levers .oln{font-size:15px;font-weight:600}
+  .o-levers .olh{font-size:13.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+
+  .o-rule{
+    margin-top:4px;padding:14px 22px 20px;border-top:1px dashed var(--line);
+    font-size:13.5px;color:var(--ink);
+  }
+  .o-rule b{font-weight:600}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .btn{
+    font-family:var(--sans);font-size:14px;font-weight:600;
+    padding:11px 18px;border-radius:8px;border:1.5px solid var(--ink);
+    background:var(--ink);color:var(--paper);cursor:pointer;transition:opacity .15s ease;
+  }
+  .btn:hover{opacity:.85}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn:disabled{opacity:.3;cursor:not-allowed}
+  .copied{font-family:var(--mono);font-size:12px;color:var(--motion-deep);align-self:center;opacity:0;transition:opacity .2s ease}
+  .copied.show{opacity:1}
+
+  /* ---------- footer note ---------- */
+  .foot{
+    margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted);line-height:1.6;
+  }
+  .foot b{color:var(--ink);font-weight:600}
+
+  /* ---------- focus + motion ---------- */
+  a:focus-visible,button:focus-visible,input:focus-visible{
+    outline:2.5px solid var(--motion);outline-offset:2px;border-radius:6px;
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important}
+    .pattern:hover{transform:none}
+  }
+
+  @media (max-width:520px){
+    .patterns{grid-template-columns:1fr}
+  }
+
+  /* ---------- print: only the protocol ---------- */
+  @media print{
+    body{background:#fff;padding:0;display:block}
+    .hero,.step,.foot,.actions{display:none!important}
+    .out{border:none;margin:0}
+    .out-top{background:#fff;color:#000;border-bottom:1.5px solid #000;padding:0 0 12px}
+    .out-top .ot-tag{display:none}
+    .out-body{padding:20px 0 0}
+    .o-rule{padding:14px 0 0}
+    .o-sit,.o-pat,.oln,.olh,.o-lab,.o-when,.o-rule,.ot-lab{color:#000!important}
+    .o-levers li::before,.o-pat .dot{background:#000!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">A protocol for one stuck-point</div>
+    <h1>Two opposite kinds of&nbsp;stuck<span class="flip"> need two opposite fixes.</span></h1>
+    <p class="lede">Being unable to <em>start</em> and being unable to <em>switch</em> feel similar from the outside, but they run on opposite mechanics — so the same advice fixes one and makes the other worse. Sort which one this is, then choose the few moves that match.</p>
+    <div class="rule">
+      <b>Pick your pattern</b><span class="arw">→</span><b>choose 2–3 levers</b><span class="arw">→</span><b>aim at one situation</b>, not your whole life at once.
+    </div>
+  </header>
+
+  <!-- STEP 1 -->
+  <section class="step" id="step1">
+    <div class="step-head">
+      <div class="step-num">01</div>
+      <div>
+        <div class="step-title">Which kind of stuck is this?</div>
+        <div class="step-sub">Pick for this one situation — you might be different in others.</div>
+      </div>
+    </div>
+    <div class="patterns">
+      <button class="pattern" data-key="rest" aria-pressed="false">
+        <span class="glyph" aria-hidden="true">
+          <svg viewBox="0 0 84 44" fill="none">
+            <path class="stroke" d="M2 40 H50 Q66 40 66 18 V8" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="stroke" d="M60 14 L66 6 L72 14" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle class="fillc" cx="16" cy="40" r="5"/>
+            <path class="stroke" d="M26 40 h14" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1 5"/>
+          </svg>
+        </span>
+        <div class="pt-state">At rest</div>
+        <div class="pt-name">Can't get started</div>
+        <div class="pt-clin">task paralysis</div>
+        <div class="pt-sounds"><span class="lab">Sounds like</span>"I want to do it, but I'm frozen." Understimulated, staring at it, scrolling instead of beginning, stuck on the first move.</div>
+      </button>
+
+      <button class="pattern" data-key="motion" aria-pressed="false">
+        <span class="glyph" aria-hidden="true">
+          <svg viewBox="0 0 84 44" fill="none">
+            <path class="stroke" d="M2 16 H46" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="stroke" d="M46 16 Q62 16 62 34 H80" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="4 5"/>
+            <circle class="fillc" cx="40" cy="16" r="5"/>
+            <path class="stroke" d="M50 16 h9" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="stroke" d="M56 12 l5 4 l-5 4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div class="pt-state">In motion</div>
+        <div class="pt-name">Can't switch off or over</div>
+        <div class="pt-clin">autistic inertia</div>
+        <div class="pt-sounds"><span class="lab">Sounds like</span>Locked into what you're doing. Transitions feel like wading through cement; hard to stop even when you should, and interruptions land hard.</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step locked" id="step2">
+    <div class="step-head">
+      <div class="step-num">02</div>
+      <div>
+        <div class="step-title">Choose two or three levers</div>
+        <div class="step-sub">Not all of them. Three is a ceiling, not a target.</div>
+      </div>
+    </div>
+    <div class="lever-note" id="leverCount">Selected <b>0</b> of 3</div>
+    <div class="levers" id="leverList"></div>
+    <div class="nudge" id="nudge">Keep it to three — narrowing is the point.</div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step locked" id="step3">
+    <div class="step-head">
+      <div class="step-num">03</div>
+      <div>
+        <div class="step-title">Name the one moment you'll aim at</div>
+        <div class="step-sub">One recurring situation. Specific beats broad.</div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="sit">The one moment I'll aim at</label>
+      <input id="sit" type="text" placeholder="e.g. Starting the dishes after dinner" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="when">When it usually happens <span class="opt">optional</span></label>
+      <input id="when" type="text" placeholder="e.g. Right after we eat, when I'm already tired" autocomplete="off">
+    </div>
+  </section>
+
+  <!-- OUTPUT -->
+  <section class="out" id="out">
+    <div class="out-top">
+      <span class="ot-lab">Your protocol</span>
+      <span class="ot-tag" id="otTag">draft</span>
+    </div>
+    <div class="out-body" id="outBody">
+      <p class="empty" id="emptyState">Make your choices above and your protocol fills in here — ready to copy, print, or pin somewhere you'll see it.</p>
+      <div id="outFilled" style="display:none">
+        <div class="o-block">
+          <div class="o-lab">The stuck-point</div>
+          <div class="o-sit ph" id="oSit">a moment you'll name in step 3</div>
+          <div class="o-when" id="oWhen"></div>
+        </div>
+        <div class="o-block">
+          <div class="o-lab">The pattern</div>
+          <div class="o-pat"><span class="dot"></span><span id="oPatName">—</span><span class="cl" id="oPatClin"></span></div>
+        </div>
+        <div class="o-block">
+          <div class="o-lab">My levers</div>
+          <ul class="o-levers" id="oLevers"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="o-rule" id="oRule" style="display:none">
+      <b>The rule:</b> one situation, one week. Then keep what worked, drop what didn't, and only then take on the next thing.
+    </div>
+    <div style="padding:0 22px 20px">
+      <div class="actions">
+        <button class="btn" id="copyBtn" disabled>Copy protocol</button>
+        <button class="btn ghost" id="printBtn" disabled>Print</button>
+        <button class="btn ghost" id="resetBtn">Start over</button>
+        <span class="copied" id="copied">Copied</span>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">This is the low-risk, behavioral half — task-initiation and transition support you can try today at no cost. It leaves out the medication and supplement protocol from the source on purpose: that part isn't something to assemble yourself, and it belongs in a conversation with a prescriber. <b>Not medical advice.</b></p>
+
+</div>
+
+<script>
+(function(){
+  var LEVERS = {
+    rest: [
+      {name:"Shrink the first step", how:"Name the smallest physical action — smaller than feels reasonable. Not \u201Cdo the dishes,\u201D but \u201Cturn on the tap.\u201D Do only that."},
+      {name:"Borrow urgency or novelty", how:"Set a visible timer, move to a different spot, use a new tool, or add a small stake. Make the moment feel different from the flat baseline."},
+      {name:"Body double", how:"Do it alongside someone — in the room, on a video call, or a \u201Cwork with me\u201D stream. Their presence carries you past the start."},
+      {name:"Let something else break it down", how:"Hand the vague task to a splitter like Goblin.tools and let it write the micro-steps, so you're not planning and starting at the same time."}
+    ],
+    motion: [
+      {name:"Ramp the transition down", how:"Warn yourself before switching: 15 minutes, then 10, then 5. No hard stops — give the change a runway."},
+      {name:"Make the switch predictable", how:"Run the transition in the same order every time, so it stops being a fresh problem your brain has to re-solve."},
+      {name:"Build a bridge task", how:"Put one small neutral action between the two activities — a stretch, a glass of water, a short walk. It carries you across instead of dropping you."},
+      {name:"Lower the sensory load first", how:"Before switching, cut the input: headphones on or off, dim the light, close spare tabs. Fewer signals make the change cost less."}
+    ]
+  };
+  var META = {
+    rest:   {name:"Can't get started", clin:"task paralysis"},
+    motion: {name:"Can't switch off or over", clin:"autistic inertia"}
+  };
+  var MAX = 3;
+
+  var state = {pattern:null, levers:[]};
+
+  var $ = function(id){return document.getElementById(id);};
+  var patternBtns = document.querySelectorAll('.pattern');
+  var leverList = $('leverList');
+
+  function renderLevers(){
+    leverList.innerHTML = '';
+    state.levers = [];
+    if(!state.pattern) return;
+    LEVERS[state.pattern].forEach(function(lv, i){
+      var b = document.createElement('button');
+      b.className = 'lever';
+      b.setAttribute('aria-pressed','false');
+      b.dataset.idx = i;
+      b.innerHTML =
+        '<span class="tick"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 L5 9.5 L10 3"/></svg></span>'+
+        '<span><span class="l-name">'+lv.name+'</span><span class="l-how">'+lv.how+'</span></span>';
+      b.addEventListener('click', function(){ toggleLever(i, b); });
+      leverList.appendChild(b);
+    });
+    updateCount();
+  }
+
+  function toggleLever(i, el){
+    var pos = state.levers.indexOf(i);
+    if(pos > -1){
+      state.levers.splice(pos,1);
+      el.classList.remove('on');
+      el.setAttribute('aria-pressed','false');
+      hideNudge();
+    } else {
+      if(state.levers.length >= MAX){ showNudge(); return; }
+      state.levers.push(i);
+      el.classList.add('on');
+      el.setAttribute('aria-pressed','true');
+    }
+    updateCount();
+    render();
+  }
+
+  var nudgeTimer;
+  function showNudge(){
+    $('nudge').classList.add('show');
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(hideNudge, 2600);
+  }
+  function hideNudge(){ $('nudge').classList.remove('show'); }
+
+  function updateCount(){
+    $('leverCount').innerHTML = 'Selected <b>'+state.levers.length+'</b> of '+MAX;
+  }
+
+  function scrollToStep2(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('step2').scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+  }
+
+  patternBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.dataset.key;
+      if(state.pattern !== key){
+        state.pattern = key;
+        patternBtns.forEach(function(b){
+          var on = b.dataset.key === key;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        document.body.dataset.pattern = key;
+        $('step2').classList.remove('locked');
+        $('step3').classList.remove('locked');
+        renderLevers();
+        render();
+      }
+      scrollToStep2();
+    });
+  });
+
+  $('sit').addEventListener('input', render);
+  $('when').addEventListener('input', render);
+
+  function render(){
+    var hasPattern = !!state.pattern;
+    var hasLevers = state.levers.length > 0;
+    var ready = hasPattern && hasLevers;
+
+    $('emptyState').style.display = ready ? 'none' : 'block';
+    $('outFilled').style.display = ready ? 'block' : 'none';
+    $('oRule').style.display = ready ? 'block' : 'none';
+    $('copyBtn').disabled = !ready;
+    $('printBtn').disabled = !ready;
+
+    if(!ready) return;
+
+    var sit = $('sit').value.trim();
+    var when = $('when').value.trim();
+    var oSit = $('oSit');
+    if(sit){ oSit.textContent = sit; oSit.classList.remove('ph'); }
+    else { oSit.textContent = 'a moment you\u2019ll name in step 3'; oSit.classList.add('ph'); }
+    $('oWhen').textContent = when ? when : '';
+
+    var m = META[state.pattern];
+    $('oPatName').textContent = m.name;
+    $('oPatClin').textContent = m.clin;
+    $('otTag').textContent = sit ? 'ready' : 'draft';
+
+    var ul = $('oLevers');
+    ul.innerHTML = '';
+    state.levers.slice().sort(function(a,b){return a-b;}).forEach(function(i){
+      var lv = LEVERS[state.pattern][i];
+      var li = document.createElement('li');
+      li.innerHTML = '<div class="oln">'+lv.name+'</div><div class="olh">'+lv.how+'</div>';
+      ul.appendChild(li);
+    });
+  }
+
+  function plainText(){
+    var m = META[state.pattern];
+    var sit = $('sit').value.trim();
+    var when = $('when').value.trim();
+    var lines = [];
+    lines.push('MY UNSTICK PROTOCOL');
+    lines.push('');
+    lines.push('The stuck-point: ' + (sit || '(name one recurring moment)'));
+    if(when) lines.push('When it happens: ' + when);
+    lines.push('The pattern: ' + m.name + ' (' + m.clin + ')');
+    lines.push('');
+    lines.push('My levers:');
+    state.levers.slice().sort(function(a,b){return a-b;}).forEach(function(i){
+      var lv = LEVERS[state.pattern][i];
+      lines.push('  \u2022 ' + lv.name + ' \u2014 ' + lv.how);
+    });
+    lines.push('');
+    lines.push('The rule: one situation, one week. Then keep what worked, drop what didn\u2019t, and only then take on the next thing.');
+    return lines.join('\n');
+  }
+
+  $('copyBtn').addEventListener('click', function(){
+    var txt = plainText();
+    var done = function(){
+      var c = $('copied'); c.classList.add('show');
+      setTimeout(function(){ c.classList.remove('show'); }, 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(function(){ fallbackCopy(txt); done(); });
+    } else { fallbackCopy(txt); done(); }
+  });
+
+  function fallbackCopy(txt){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  $('printBtn').addEventListener('click', function(){ window.print(); });
+
+  $('resetBtn').addEventListener('click', function(){
+    state = {pattern:null, levers:[]};
+    patternBtns.forEach(function(b){ b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
+    delete document.body.dataset.pattern;
+    $('step2').classList.add('locked');
+    $('step3').classList.add('locked');
+    leverList.innerHTML = '';
+    $('sit').value = ''; $('when').value = '';
+    updateCount();
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
