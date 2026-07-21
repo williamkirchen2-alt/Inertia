@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unstick Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@1,18,400;1,18,500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F2523;
+    --paper:#EFF1ED;
+    --card:#FBFBF9;
+    --line:#E0E2DD;
+    --muted:#6E736D;
+
+    --rest:#BE842E;
+    --rest-deep:#8F631C;
+    --rest-wash:#F7EFDD;
+
+    --motion:#3D6B6B;
+    --motion-deep:#2E5252;
+    --motion-wash:#E2EDEB;
+
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:"Newsreader",Georgia,serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html{-webkit-text-size-adjust:100%}
+
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.5;
+    font-size:16px;
+    padding:clamp(20px,5vw,64px) 20px 96px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .wrap{width:100%;max-width:700px}
+
+  /* ---------- eyebrow / labels ---------- */
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::after{content:"";flex:0 0 auto;width:28px;height:1px;background:var(--line)}
+
+  /* ---------- hero ---------- */
+  .hero{margin-bottom:52px}
+  .hero h1{
+    font-family:var(--serif);
+    font-style:italic;
+    font-weight:400;
+    font-size:clamp(34px,7vw,52px);
+    line-height:1.04;
+    letter-spacing:-.01em;
+    margin:18px 0 16px;
+  }
+  .hero h1 .flip{color:var(--muted)}
+  .hero .lede{
+    font-size:clamp(16px,2.4vw,18px);
+    color:var(--ink);
+    max-width:52ch;
+  }
+  .rule{
+    margin-top:22px;
+    padding:14px 16px;
+    border:1px solid var(--line);
+    border-left:2px solid var(--ink);
+    background:var(--card);
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .rule-steps{font-size:14.5px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px}
+  .rule-steps b{font-weight:600}
+  .rule .arw{color:var(--muted);font-family:var(--mono)}
+  .rule-note{font-size:13.5px;color:var(--muted)}
+
+  /* ---------- step scaffolding ---------- */
+  .step{margin-top:48px;transition:opacity .35s ease;scroll-margin-top:24px}
+  .step.locked{opacity:.32;pointer-events:none;filter:grayscale(.4)}
+  .step-head{margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+  .step-kicker{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:9px;
+  }
+  .step-kicker::before{content:"";width:22px;height:1px;background:var(--muted);opacity:.55}
+  .step-kicker .k-num{color:var(--ink)}
+  .step-title{font-size:21px;font-weight:600;letter-spacing:-.015em;line-height:1.2}
+  .step-sub{font-size:14px;color:var(--muted);margin-top:7px;line-height:1.5;max-width:56ch}
+
+  /* ---------- pattern cards ---------- */
+  .patterns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pattern{
+    position:relative;
+    text-align:left;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:20px 18px 18px;
+    cursor:pointer;
+    font-family:inherit;
+    color:inherit;
+    transition:border-color .18s ease,background .18s ease,transform .12s ease,box-shadow .18s ease;
+  }
+  .pattern:hover{transform:translateY(-2px);border-color:var(--muted);box-shadow:0 5px 16px rgba(31,37,35,.07)}
+  .pattern:hover .pick{border-color:var(--ink)}
+
+  /* clickable indicator */
+  .pick{
+    position:absolute;top:15px;right:15px;
+    width:22px;height:22px;border-radius:50%;
+    border:1.8px solid var(--muted);
+    display:flex;align-items:center;justify-content:center;
+    transition:border-color .18s ease,background .18s ease;
+  }
+  .pick svg{width:12px;height:12px;opacity:0;transform:scale(.5);transition:opacity .18s ease,transform .18s ease}
+  .pattern.on[data-key="rest"] .pick{border-color:var(--rest);background:var(--rest)}
+  .pattern.on[data-key="motion"] .pick{border-color:var(--motion);background:var(--motion)}
+  .pattern.on .pick svg{opacity:1;transform:scale(1);stroke:var(--card)}
+  @keyframes pickpulse{0%,100%{box-shadow:0 0 0 0 rgba(110,115,109,0)}50%{box-shadow:0 0 0 5px rgba(110,115,109,.12)}}
+  body:not([data-pattern]) .pick{animation:pickpulse 2.4s ease-in-out infinite}
+
+  .pick-hint{
+    margin-top:16px;font-family:var(--mono);font-size:12.5px;letter-spacing:.02em;
+    color:var(--muted);display:flex;align-items:center;gap:9px;transition:opacity .25s ease;
+  }
+  .pick-hint::before{content:"";width:22px;height:1px;background:var(--muted);opacity:.5}
+  .pick-hint.gone{opacity:0;height:0;margin:0;overflow:hidden;pointer-events:none}
+
+  .pattern .glyph{display:block;height:44px;margin-bottom:14px}
+  .pattern .glyph svg{height:44px;width:auto}
+  .pt-state{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .pt-name{font-size:18px;font-weight:600;margin:6px 0 2px;letter-spacing:-.015em;line-height:1.15}
+  .pt-clin{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px}
+  .pt-voice{font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.3;color:var(--ink);margin-bottom:8px}
+  .pt-desc{font-size:13.5px;color:var(--muted);line-height:1.5}
+
+  .pattern[data-key="rest"] .stroke{stroke:var(--rest)}
+  .pattern[data-key="rest"] .fillc{fill:var(--rest)}
+  .pattern[data-key="motion"] .stroke{stroke:var(--motion)}
+  .pattern[data-key="motion"] .fillc{fill:var(--motion)}
+
+  .pattern.on[data-key="rest"]{border-color:var(--rest);background:var(--rest-wash)}
+  .pattern.on[data-key="motion"]{border-color:var(--motion);background:var(--motion-wash)}
+  .pattern.on .pt-state{color:inherit}
+  .pattern.on[data-key="rest"] .pt-state{color:var(--rest-deep)}
+  .pattern.on[data-key="motion"] .pt-state{color:var(--motion-deep)}
+
+  /* ---------- levers ---------- */
+  .lever-note{font-size:13px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);letter-spacing:.02em}
+  .lever-note b{color:var(--ink)}
+  .levers{display:flex;flex-direction:column;gap:10px}
+  .lever{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    text-align:left;
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:9px;
+    padding:15px 16px;
+    cursor:pointer;
+    font-family:inherit;
+    color:inherit;
+    width:100%;
+    transition:border-color .16s ease,background .16s ease;
+  }
+  .lever:hover{border-color:var(--muted)}
+  .lever .tick{
+    flex:0 0 auto;width:19px;height:19px;border-radius:5px;
+    border:1.6px solid var(--muted);margin-top:1px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .16s ease;
+  }
+  .lever .tick svg{width:11px;height:11px;opacity:0;transform:scale(.6);transition:all .16s ease}
+  .lever .l-name{display:block;font-size:16px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+  .lever .l-how{display:block;font-size:14px;color:var(--muted);margin-top:5px;line-height:1.5}
+
+  body[data-pattern="rest"] .lever.on{border-color:var(--rest);background:var(--rest-wash)}
+  body[data-pattern="rest"] .lever.on .tick{border-color:var(--rest);background:var(--rest)}
+  body[data-pattern="motion"] .lever.on{border-color:var(--motion);background:var(--motion-wash)}
+  body[data-pattern="motion"] .lever.on .tick{border-color:var(--motion);background:var(--motion)}
+  .lever.on .tick svg{opacity:1;transform:scale(1);stroke:var(--card)}
+
+  .nudge{
+    font-size:12.5px;color:var(--rest-deep);font-family:var(--mono);
+    margin-top:10px;height:16px;opacity:0;transition:opacity .2s ease;letter-spacing:.02em;
+  }
+  .nudge.show{opacity:1}
+
+  /* ---------- per-lever fill-in box ---------- */
+  .lever-item{display:flex;flex-direction:column}
+  .lever-detail{max-height:0;opacity:0;visibility:hidden;overflow:hidden;transition:max-height .28s ease,opacity .2s ease,visibility 0s linear .28s}
+  .lever-item.open .lever-detail{max-height:520px;opacity:1;visibility:visible;transition:max-height .3s ease,opacity .2s ease,visibility 0s}
+  .ld-inner{margin-top:8px;padding:14px 16px 15px;border:1px solid var(--line);border-left:3px solid var(--muted);border-radius:9px;background:var(--card)}
+  body[data-pattern="rest"] .lever-item.open .ld-inner{border-left-color:var(--rest);background:#FBF6EC}
+  body[data-pattern="motion"] .lever-item.open .ld-inner{border-left-color:var(--motion);background:#EDF5F3}
+  .ld-prompt{font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+  .ld-prompt::before{content:"\2192";font-family:var(--mono);color:var(--muted)}
+  .ld-input{width:100%;font-family:inherit;font-size:14.5px;color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:7px;padding:10px 12px;transition:border-color .16s ease}
+  .ld-input::placeholder{color:#AEB2AC}
+  .ld-input:focus{outline:none;border-color:var(--ink)}
+  .ld-hint{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);width:100%;margin:12px 0 -2px}
+  .ld-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+  .chip{font-family:var(--sans);font-size:12.5px;color:var(--ink);background:transparent;border:1.3px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;transition:border-color .15s ease,background .15s ease,color .15s ease}
+  .chip:hover{border-color:var(--muted)}
+  body[data-pattern="rest"] .chip.on{border-color:var(--rest);background:var(--rest-wash);color:var(--rest-deep)}
+  body[data-pattern="motion"] .chip.on{border-color:var(--motion);background:var(--motion-wash);color:var(--motion-deep)}
+  .ld-link{display:inline-block;margin-top:13px;font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:var(--motion-deep);text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
+  .ld-link:hover{opacity:.75}
+
+  /* ---------- ramp timer ---------- */
+  .tw-modes{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+  .tw-mode{font-family:var(--sans);font-size:12.5px;color:var(--ink);background:transparent;border:1.3px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;transition:border-color .15s ease,background .15s ease,color .15s ease}
+  .tw-mode:hover{border-color:var(--muted)}
+  .tw-mode.on{border-color:var(--motion);background:var(--motion-wash);color:var(--motion-deep)}
+  .tw-custom{display:none;align-items:center;gap:10px;margin-bottom:12px}
+  .tw-step{width:30px;height:30px;border-radius:7px;border:1.4px solid var(--line);background:var(--paper);color:var(--ink);font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease}
+  .tw-step:hover{border-color:var(--motion)}
+  .tw-stepval{font-family:var(--mono);font-size:13.5px;color:var(--ink);min-width:66px;text-align:center}
+  .tw-display{font-family:var(--mono);font-size:40px;font-weight:500;letter-spacing:.02em;color:var(--ink);line-height:1;margin:4px 0 6px;display:inline-block;padding:2px 4px}
+  .tw-display.done{color:var(--motion-deep)}
+  @keyframes twflash{0%{background:transparent}30%{background:var(--motion-wash)}100%{background:transparent}}
+  .tw-display.tw-flash{animation:twflash .6s ease;border-radius:6px}
+  .tw-next{font-size:13px;color:var(--muted);margin-bottom:13px}
+  .tw-next b{color:var(--motion-deep);font-weight:600}
+  .tw-stages{display:flex;align-items:center;gap:8px;margin-bottom:15px;flex-wrap:wrap}
+  .tw-stage{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px;letter-spacing:.02em}
+  .tw-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--line);background:transparent;transition:background .2s ease,border-color .2s ease}
+  .tw-stage.reached{color:var(--motion-deep)}
+  .tw-stage.reached .tw-dot{background:var(--motion);border-color:var(--motion)}
+  .tw-sep{width:14px;height:1px;background:var(--line)}
+  .tw-controls{display:flex;align-items:center;gap:9px}
+  .tw-btn{font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 17px;border-radius:7px;border:1.5px solid var(--motion);background:var(--motion);color:#fff;cursor:pointer;transition:opacity .15s ease}
+  .tw-btn:hover{opacity:.88}
+  .tw-btn.ghost{background:transparent;color:var(--motion-deep)}
+  .tw-mute{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--muted);background:transparent;border:none;cursor:pointer;padding:4px}
+  .tw-mute.off{opacity:.65}
+
+  /* ---------- situation ---------- */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+  .field label .opt{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:.04em}
+  .field input{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    background:var(--card);border:1.5px solid var(--line);border-radius:8px;
+    padding:12px 14px;transition:border-color .16s ease;
+  }
+  .field input::placeholder{color:#A9ADA7}
+  .field input:focus{outline:none;border-color:var(--ink)}
+
+  /* ---------- output ---------- */
+  .out{
+    margin-top:44px;border:1.5px solid var(--ink);border-radius:12px;
+    background:var(--card);overflow:hidden;
+  }
+  .out-top{
+    padding:16px 22px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    background:var(--ink);color:var(--paper);
+  }
+  .out-top .ot-lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .out-top .ot-tag{font-family:var(--mono);font-size:11px;opacity:.7}
+  .out-body{padding:24px 22px 8px}
+
+  .empty{color:var(--muted);font-size:14.5px;line-height:1.55;padding:8px 0 20px}
+
+  .o-block{margin-bottom:20px}
+  .o-lab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .o-sit{font-family:var(--serif);font-style:italic;font-size:22px;line-height:1.2;color:var(--ink)}
+  .o-sit.ph{color:#B4B8B2}
+  .o-when{font-size:14px;color:var(--muted);margin-top:5px}
+  .o-pat{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+  .o-pat .dot{width:9px;height:9px;border-radius:50%}
+  .o-pat .cl{font-weight:400;color:var(--muted);font-family:var(--mono);font-size:12px}
+  body[data-pattern="rest"] .o-pat .dot{background:var(--rest)}
+  body[data-pattern="motion"] .o-pat .dot{background:var(--motion)}
+
+  .o-levers{list-style:none;display:flex;flex-direction:column;gap:12px}
+  .o-levers li{padding-left:16px;position:relative}
+  .o-levers li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%}
+  body[data-pattern="rest"] .o-levers li::before{background:var(--rest)}
+  body[data-pattern="motion"] .o-levers li::before{background:var(--motion)}
+  .o-levers .oln{font-size:15px;font-weight:600}
+  .o-levers .oln-do{font-size:14.5px;font-weight:600;margin-top:4px;line-height:1.4}
+  body[data-pattern="rest"] .o-levers .oln-do{color:var(--rest-deep)}
+  body[data-pattern="motion"] .o-levers .oln-do{color:var(--motion-deep)}
+  .o-levers .olh{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+
+  .o-rule{
+    margin-top:4px;padding:14px 22px 20px;border-top:1px dashed var(--line);
+    font-size:13.5px;color:var(--ink);
+    display:flex;flex-direction:column;gap:6px;
+  }
+  .o-rule b{font-weight:600;font-size:13px}
+  .o-rule .o-rule-body{color:var(--muted)}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .btn{
+    font-family:var(--sans);font-size:14px;font-weight:600;
+    padding:11px 18px;border-radius:8px;border:1.5px solid var(--ink);
+    background:var(--ink);color:var(--paper);cursor:pointer;transition:opacity .15s ease;
+  }
+  .btn:hover{opacity:.85}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn:disabled{opacity:.3;cursor:not-allowed}
+  .copied{font-family:var(--mono);font-size:12px;color:var(--motion-deep);align-self:center;opacity:0;transition:opacity .2s ease}
+  .copied.show{opacity:1}
+
+  /* ---------- footer note ---------- */
+  .foot{
+    margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted);line-height:1.6;
+  }
+  .foot b{color:var(--ink);font-weight:600}
+
+  /* ---------- focus + motion ---------- */
+  a:focus-visible,button:focus-visible,input:focus-visible{
+    outline:2.5px solid var(--motion);outline-offset:2px;border-radius:6px;
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+    .pattern:hover{transform:none}
+  }
+
+  @media (max-width:520px){
+    .patterns{grid-template-columns:1fr}
+  }
+
+  /* ---------- print: only the protocol ---------- */
+  @media print{
+    body{background:#fff;padding:0;display:block}
+    .hero,.step,.foot,.actions{display:none!important}
+    .out{border:none;margin:0}
+    .out-top{background:#fff;color:#000;border-bottom:1.5px solid #000;padding:0 0 12px}
+    .out-top .ot-tag{display:none}
+    .out-body{padding:20px 0 0}
+    .o-rule{padding:14px 0 0}
+    .o-sit,.o-pat,.oln,.oln-do,.olh,.o-lab,.o-when,.o-rule,.o-rule-body,.ot-lab{color:#000!important}
+    .o-levers li::before,.o-pat .dot{background:#000!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">A protocol for one stuck-point</div>
+    <h1>Two opposite kinds of&nbsp;stuck<span class="flip"> need two opposite fixes.</span></h1>
+    <p class="lede">Can't-<em>start</em> and can't-<em>switch</em> feel the same but run on opposite mechanics — so the same advice fixes one and worsens the other.</p>
+    <div class="rule">
+      <span class="rule-steps"><b>Pick your pattern</b><span class="arw">→</span><b>choose 2–3 levers</b><span class="arw">→</span><b>aim at one situation</b></span>
+      <span class="rule-note">Not your whole life at once.</span>
+    </div>
+  </header>
+
+  <!-- STEP 1 -->
+  <section class="step" id="step1">
+    <div class="step-head">
+      <div class="step-kicker">Step <span class="k-num">01</span></div>
+      <h2 class="step-title">Which kind of stuck is this?</h2>
+      <p class="step-sub">Tap the card that fits — you can be a different type in other situations.</p>
+    </div>
+    <div class="patterns">
+      <button class="pattern" data-key="rest" aria-pressed="false">
+        <span class="pick" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 L5 9.5 L10 3"/></svg></span>
+        <span class="glyph" aria-hidden="true">
+          <svg viewBox="0 0 84 44" fill="none">
+            <path class="stroke" d="M2 40 H50 Q66 40 66 18 V8" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="stroke" d="M60 14 L66 6 L72 14" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle class="fillc" cx="16" cy="40" r="5"/>
+            <path class="stroke" d="M26 40 h14" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1 5"/>
+          </svg>
+        </span>
+        <div class="pt-state">At rest</div>
+        <div class="pt-name">Can't get started</div>
+        <div class="pt-clin">task paralysis</div>
+        <div class="pt-voice">&ldquo;I want to do it, but I&rsquo;m frozen.&rdquo;</div>
+        <div class="pt-desc">Understimulated, staring at it, scrolling instead of beginning — stuck on the very first move.</div>
+      </button>
+
+      <button class="pattern" data-key="motion" aria-pressed="false">
+        <span class="pick" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 L5 9.5 L10 3"/></svg></span>
+        <span class="glyph" aria-hidden="true">
+          <svg viewBox="0 0 84 44" fill="none">
+            <path class="stroke" d="M2 16 H46" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="stroke" d="M46 16 Q62 16 62 34 H80" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="4 5"/>
+            <circle class="fillc" cx="40" cy="16" r="5"/>
+            <path class="stroke" d="M50 16 h9" stroke-width="1.6" stroke-linecap="round"/>
+            <path class="stroke" d="M56 12 l5 4 l-5 4" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <div class="pt-state">In motion</div>
+        <div class="pt-name">Can't switch off or over</div>
+        <div class="pt-clin">autistic inertia</div>
+        <div class="pt-voice">&ldquo;I can&rsquo;t make myself stop or switch.&rdquo;</div>
+        <div class="pt-desc">Locked into the task; transitions feel like wading through cement, and interruptions land hard.</div>
+      </button>
+    </div>
+    <div class="pick-hint" id="pickHint">Tap a card to unlock your levers</div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step locked" id="step2">
+    <div class="step-head">
+      <div class="step-kicker">Step <span class="k-num">02</span></div>
+      <h2 class="step-title">Choose two or three levers</h2>
+      <p class="step-sub">Not all of them. Three is a ceiling, not a target.</p>
+    </div>
+    <div class="lever-note" id="leverCount">Selected <b>0</b> of 3</div>
+    <div class="levers" id="leverList"></div>
+    <div class="nudge" id="nudge">Keep it to three — narrowing is the point.</div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step locked" id="step3">
+    <div class="step-head">
+      <div class="step-kicker">Step <span class="k-num">03</span></div>
+      <h2 class="step-title">Name the one moment you'll aim at</h2>
+      <p class="step-sub">One recurring situation. Specific beats broad.</p>
+    </div>
+    <div class="field">
+      <label for="sit">The one moment I'll aim at</label>
+      <input id="sit" type="text" placeholder="e.g. Starting the dishes after dinner" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="when">When it usually happens <span class="opt">optional</span></label>
+      <input id="when" type="text" placeholder="e.g. Right after we eat, when I'm already tired" autocomplete="off">
+    </div>
+  </section>
+
+  <!-- OUTPUT -->
+  <section class="out" id="out">
+    <div class="out-top">
+      <span class="ot-lab">Your protocol</span>
+      <span class="ot-tag" id="otTag">draft</span>
+    </div>
+    <div class="out-body" id="outBody">
+      <p class="empty" id="emptyState">Make your choices above and your protocol fills in here — ready to copy, print, or pin somewhere you'll see it.</p>
+      <div id="outFilled" style="display:none">
+        <div class="o-block">
+          <div class="o-lab">The stuck-point</div>
+          <div class="o-sit ph" id="oSit">a moment you'll name in step 3</div>
+          <div class="o-when" id="oWhen"></div>
+        </div>
+        <div class="o-block">
+          <div class="o-lab">The pattern</div>
+          <div class="o-pat"><span class="dot"></span><span id="oPatName">—</span><span class="cl" id="oPatClin"></span></div>
+        </div>
+        <div class="o-block">
+          <div class="o-lab">My levers</div>
+          <ul class="o-levers" id="oLevers"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="o-rule" id="oRule" style="display:none">
+      <b>The rule</b>
+      <span class="o-rule-body">One situation, one week. Then keep what worked, drop what didn't, and only then take on the next thing.</span>
+    </div>
+    <div style="padding:0 22px 20px">
+      <div class="actions">
+        <button class="btn" id="copyBtn" disabled>Copy protocol</button>
+        <button class="btn ghost" id="printBtn" disabled>Print</button>
+        <button class="btn ghost" id="resetBtn">Start over</button>
+        <span class="copied" id="copied">Copied</span>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">This is the low-risk, behavioral half — task-initiation and transition support you can try today at no cost. It leaves out the medication and supplement protocol from the source on purpose: that part isn't something to assemble yourself, and it belongs in a conversation with a prescriber. <b>Not medical advice.</b></p>
+
+</div>
+
+<script>
+(function(){
+  var LEVERS = {
+    rest: [
+      {name:"Shrink the first step", how:"Name the smallest physical action — smaller than feels reasonable. Not \u201Cdo the dishes,\u201D but \u201Cturn on the tap.\u201D Do only that.",
+       prompt:"My stupidly-small first move", ph:"e.g. turn on the tap", chips:["Open it","Get one item out","Write one line","Sit down at it"]},
+      {name:"Borrow urgency or novelty", how:"Set a visible timer, move to a different spot, use a new tool, or add a small stake. Make the moment feel different from the flat baseline.",
+       prompt:"The change I'll make", ph:"e.g. set a 15-minute timer", chips:["15-min timer","New spot","Play music","Reward after"]},
+      {name:"Body double", how:"Do it alongside someone — in the room, on a video call, or a \u201Cwork with me\u201D stream. Their presence carries you past the start.",
+       prompt:"Who or what I'll work alongside", ph:"e.g. video-call a friend", chips:["Friend on video","Online body double","Co-working stream","Someone in the room"],
+       link:{label:"Try Focusmate (virtual body double) \u2197", url:"https://www.focusmate.com"}},
+      {name:"Let something else break it down", how:"Hand the vague task to a splitter and let it write the micro-steps, so you're not planning and starting at the same time.",
+       prompt:"The task I'll hand over to split up", ph:"e.g. \u201Ctidy the whole kitchen\u201D", chips:[], link:{label:"Open Goblin.tools \u2197", url:"https://goblin.tools"}}
+    ],
+    motion: [
+      {name:"Ramp the transition down", how:"Warn yourself before switching: 15 minutes, then 10, then 5. No hard stops — give the change a runway.",
+       prompt:"Set your countdown before switching", type:"timer",
+       modes:[
+         {label:"15 \u2192 10 \u2192 5", marks:[15,10,5], value:"15 \u2192 10 \u2192 5 min countdown"},
+         {label:"10 \u2192 5 \u2192 2", marks:[10,5,2], value:"10 \u2192 5 \u2192 2 min countdown"},
+         {label:"Custom", custom:true}
+       ]},
+      {name:"Make the switch predictable", how:"Run the transition in the same order every time, so it stops being a fresh problem your brain has to re-solve.",
+       prompt:"The same order I'll follow each time", ph:"e.g. save work \u2192 water \u2192 next task", chips:[]},
+      {name:"Build a bridge task", how:"Put one small neutral action between the two activities — a stretch, a glass of water, a short walk. It carries you across instead of dropping you.",
+       prompt:"My small in-between action", ph:"e.g. a glass of water", chips:["Glass of water","Short walk","Quick stretch","Step outside"]},
+      {name:"Lower the sensory load first", how:"Before switching, cut the input: headphones on or off, dim the light, close spare tabs. Fewer signals make the change cost less.",
+       prompt:"What I'll turn down first", ph:"e.g. headphones on, lights dim", chips:["Headphones on","Dim lights","Close spare tabs","Quieter room"]}
+    ]
+  };
+  var META = {
+    rest:   {name:"Can't get started", clin:"task paralysis"},
+    motion: {name:"Can't switch off or over", clin:"autistic inertia"}
+  };
+  var MAX = 3;
+
+  var state = {pattern:null, levers:[], detail:{}};
+
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  var $ = function(id){return document.getElementById(id);};
+  var patternBtns = document.querySelectorAll('.pattern');
+  var leverList = $('leverList');
+
+  function renderLevers(){
+    clearTimers();
+    leverList.innerHTML = '';
+    state.levers = [];
+    state.detail = {};
+    if(!state.pattern) return;
+    LEVERS[state.pattern].forEach(function(lv, i){
+      var item = document.createElement('div');
+      item.className = 'lever-item';
+      item.dataset.idx = i;
+
+      var detailInner;
+      if(lv.type === 'timer'){
+        detailInner = '<label class="ld-prompt">'+lv.prompt+'</label><div class="tw-mount"></div>';
+      } else {
+        var chipsHtml = '';
+        if(lv.chips && lv.chips.length){
+          chipsHtml = '<div class="ld-hint">Quick picks</div><div class="ld-chips">' +
+            lv.chips.map(function(c){ return '<button type="button" class="chip">'+esc(c)+'</button>'; }).join('') +
+            '</div>';
+        }
+        var linkHtml = lv.link ? '<a class="ld-link" href="'+lv.link.url+'" target="_blank" rel="noopener">'+esc(lv.link.label)+'</a>' : '';
+        detailInner =
+          '<label class="ld-prompt" for="ld-in-'+i+'">'+lv.prompt+'</label>'+
+          '<input class="ld-input" id="ld-in-'+i+'" type="text" placeholder="'+esc(lv.ph)+'" autocomplete="off">'+
+          chipsHtml + linkHtml;
+      }
+
+      item.innerHTML =
+        '<button class="lever" aria-pressed="false" aria-expanded="false">'+
+          '<span class="tick"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 L5 9.5 L10 3"/></svg></span>'+
+          '<span><span class="l-name">'+lv.name+'</span><span class="l-how">'+lv.how+'</span></span>'+
+        '</button>'+
+        '<div class="lever-detail"><div class="ld-inner">'+detailInner+'</div></div>';
+
+      var btn = item.querySelector('.lever');
+      btn.addEventListener('click', function(){ toggleLever(i, item); });
+
+      if(lv.type === 'timer'){
+        item.querySelector('.tw-mount').appendChild(createRampTimer(item, i, lv));
+      } else {
+        var input = item.querySelector('.ld-input');
+        input.addEventListener('input', function(){
+          state.detail[i] = input.value;
+          syncChips(item, input.value);
+          render();
+        });
+        item.querySelectorAll('.chip').forEach(function(chip){
+          chip.addEventListener('click', function(){
+            input.value = chip.textContent;
+            state.detail[i] = chip.textContent;
+            syncChips(item, chip.textContent);
+            render();
+            input.focus({preventScroll:true});
+          });
+        });
+      }
+
+      leverList.appendChild(item);
+    });
+    updateCount();
+  }
+
+  function syncChips(item, val){
+    item.querySelectorAll('.chip').forEach(function(chip){
+      chip.classList.toggle('on', chip.textContent === val);
+    });
+  }
+
+  function toggleLever(i, item){
+    var btn = item.querySelector('.lever');
+    var pos = state.levers.indexOf(i);
+    if(pos > -1){
+      state.levers.splice(pos,1);
+      item.classList.remove('open');
+      btn.classList.remove('on');
+      btn.setAttribute('aria-pressed','false');
+      btn.setAttribute('aria-expanded','false');
+      if(item._timer && item._timer.pause) item._timer.pause();
+      hideNudge();
+    } else {
+      if(state.levers.length >= MAX){ showNudge(); return; }
+      state.levers.push(i);
+      item.classList.add('open');
+      btn.classList.add('on');
+      btn.setAttribute('aria-pressed','true');
+      btn.setAttribute('aria-expanded','true');
+      var input = item.querySelector('.ld-input');
+      if(input) input.focus({preventScroll:true});
+    }
+    updateCount();
+    render();
+  }
+
+  /* ---- staged ramp timer (for the 'Ramp the transition down' lever) ---- */
+  var timers = [];
+  function clearTimers(){ timers.forEach(function(t){ try{ t.destroy(); }catch(e){} }); timers = []; }
+
+  function createRampTimer(item, i, lv){
+    var modes = lv.modes;
+    var selIdx = 0, customVal = 10;
+    var muted = false, running = false, done = false;
+    var intv = null, endAt = null, remaining = 0;
+    var marks = [], announceMarks = [], fired = {}, actx = null;
+
+    var el = document.createElement('div');
+    el.className = 'timerw';
+    el.innerHTML =
+      '<div class="tw-modes"></div>'+
+      '<div class="tw-custom"><button type="button" class="tw-step" data-d="-1">\u2212</button>'+
+        '<span class="tw-stepval"></span>'+
+        '<button type="button" class="tw-step" data-d="1">+</button></div>'+
+      '<div class="tw-display">0:00</div>'+
+      '<div class="tw-next" aria-live="polite"></div>'+
+      '<div class="tw-stages"></div>'+
+      '<div class="tw-controls">'+
+        '<button type="button" class="tw-btn tw-start">Start</button>'+
+        '<button type="button" class="tw-btn ghost tw-reset">Reset</button>'+
+        '<button type="button" class="tw-mute">\u25CF sound on</button>'+
+      '</div>';
+
+    var modesEl = el.querySelector('.tw-modes'),
+        customEl = el.querySelector('.tw-custom'),
+        stepvalEl = el.querySelector('.tw-stepval'),
+        dispEl = el.querySelector('.tw-display'),
+        nextEl = el.querySelector('.tw-next'),
+        stagesEl = el.querySelector('.tw-stages'),
+        startBtn = el.querySelector('.tw-start'),
+        resetBtn = el.querySelector('.tw-reset'),
+        muteBtn = el.querySelector('.tw-mute');
+
+    modes.forEach(function(m, idx){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'tw-mode'; b.textContent = m.label;
+      b.addEventListener('click', function(){ selectMode(idx); });
+      modesEl.appendChild(b);
+    });
+    el.querySelectorAll('.tw-step').forEach(function(s){
+      s.addEventListener('click', function(){
+        customVal = Math.min(60, Math.max(1, customVal + parseInt(s.dataset.d, 10)));
+        applyMode(); resetTimer();
+      });
+    });
+    startBtn.addEventListener('click', function(){ running ? pause() : start(); });
+    resetBtn.addEventListener('click', function(){ resetTimer(); });
+    muteBtn.addEventListener('click', function(){
+      muted = !muted;
+      muteBtn.innerHTML = muted ? '\u25CB sound off' : '\u25CF sound on';
+      muteBtn.classList.toggle('off', muted);
+    });
+
+    function currentMarks(){
+      var m = modes[selIdx];
+      if(m.custom){ return customVal > 1 ? [customVal, 1] : [customVal]; }
+      return m.marks.slice();
+    }
+    function currentValue(){
+      var m = modes[selIdx];
+      return m.custom ? (customVal + ' min countdown') : m.value;
+    }
+    function selectMode(idx){ selIdx = idx; applyMode(); resetTimer(); }
+    function applyMode(){
+      marks = currentMarks();
+      announceMarks = marks.slice(1);
+      Array.prototype.forEach.call(modesEl.children, function(c, idx){ c.classList.toggle('on', idx === selIdx); });
+      customEl.style.display = modes[selIdx].custom ? 'flex' : 'none';
+      stepvalEl.textContent = customVal + ' min';
+      state.detail[i] = currentValue();
+      buildStages();
+      render();
+    }
+    function buildStages(){
+      stagesEl.innerHTML = '';
+      announceMarks.forEach(function(m){ addStage(m + 'm', m); addSep(); });
+      addStage('Go', 0);
+    }
+    function addStage(label, m){
+      var s = document.createElement('span');
+      s.className = 'tw-stage'; s.dataset.m = m;
+      s.innerHTML = '<span class="tw-dot"></span>' + label;
+      stagesEl.appendChild(s);
+    }
+    function addSep(){ var d = document.createElement('span'); d.className = 'tw-sep'; stagesEl.appendChild(d); }
+    function total(){ return marks[0] * 60; }
+
+    function resetTimer(){
+      running = false; done = false;
+      if(intv){ clearInterval(intv); intv = null; }
+      remaining = total(); fired = {};
+      startBtn.textContent = 'Start';
+      dispEl.classList.remove('done');
+      paint();
+    }
+    function start(){
+      if(done){ resetTimer(); }
+      running = true;
+      endAt = Date.now() + remaining * 1000;
+      startBtn.textContent = 'Pause';
+      if(intv) clearInterval(intv);
+      intv = setInterval(tick, 250);
+      tick();
+    }
+    function pause(){
+      running = false;
+      if(intv){ clearInterval(intv); intv = null; }
+      startBtn.textContent = 'Resume';
+    }
+    function tick(){
+      remaining = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+      announceMarks.forEach(function(m){
+        if(!fired['m' + m] && remaining <= m * 60){ fired['m' + m] = true; beep('mark'); flash(); }
+      });
+      paint();
+      if(remaining <= 0) finish();
+    }
+    function finish(){
+      running = false; done = true;
+      if(intv){ clearInterval(intv); intv = null; }
+      if(!fired.go){ fired.go = true; beep('switch'); flash(); }
+      startBtn.textContent = 'Restart';
+      dispEl.classList.add('done');
+      paint();
+    }
+    function nextLabel(){
+      if(remaining <= 0) return 'Switch now';
+      for(var k = 0; k < announceMarks.length; k++){ if(remaining > announceMarks[k] * 60) return announceMarks[k] + ' min'; }
+      return 'Switch now';
+    }
+    function paint(){
+      var mm = Math.floor(remaining / 60), ss = remaining % 60;
+      dispEl.textContent = mm + ':' + (ss < 10 ? '0' : '') + ss;
+      nextEl.innerHTML = remaining <= 0 ? '<b>Switch now</b>' : 'Next: <b>' + nextLabel() + '</b>';
+      Array.prototype.forEach.call(stagesEl.querySelectorAll('.tw-stage'), function(s){
+        var m = parseInt(s.dataset.m, 10);
+        var reached = (m === 0) ? remaining <= 0 : remaining <= m * 60;
+        s.classList.toggle('reached', reached);
+      });
+    }
+    function flash(){
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if(reduce) return;
+      dispEl.classList.remove('tw-flash'); void dispEl.offsetWidth; dispEl.classList.add('tw-flash');
+    }
+    function beep(kind){
+      if(muted) return;
+      try{
+        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+        var t = actx.currentTime;
+        function tone(freq, start, dur){
+          var o = actx.createOscillator(), g = actx.createGain();
+          o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(actx.destination);
+          g.gain.setValueAtTime(0.0001, t + start);
+          g.gain.exponentialRampToValueAtTime(0.06, t + start + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + start + dur);
+          o.start(t + start); o.stop(t + start + dur + 0.02);
+        }
+        if(kind === 'switch'){ tone(523, 0, 0.18); tone(392, 0.22, 0.5); }
+        else { tone(680, 0, 0.16); }
+      }catch(e){}
+    }
+    function destroy(){ if(intv){ clearInterval(intv); intv = null; } running = false; }
+
+    item._timer = { pause: function(){ if(running) pause(); }, destroy: destroy };
+    timers.push({ destroy: destroy });
+
+    applyMode();
+    resetTimer();
+    return el;
+  }
+  function showNudge(){
+    $('nudge').classList.add('show');
+    clearTimeout(nudgeTimer);
+    nudgeTimer = setTimeout(hideNudge, 2600);
+  }
+  function hideNudge(){ $('nudge').classList.remove('show'); }
+
+  function updateCount(){
+    $('leverCount').innerHTML = 'Selected <b>'+state.levers.length+'</b> of '+MAX;
+  }
+
+  function scrollToStep2(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('step2').scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: 'start'});
+  }
+
+  patternBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.dataset.key;
+      if(state.pattern !== key){
+        state.pattern = key;
+        patternBtns.forEach(function(b){
+          var on = b.dataset.key === key;
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        document.body.dataset.pattern = key;
+        $('pickHint').classList.add('gone');
+        $('step2').classList.remove('locked');
+        $('step3').classList.remove('locked');
+        renderLevers();
+        render();
+      }
+      scrollToStep2();
+    });
+  });
+
+  $('sit').addEventListener('input', render);
+  $('when').addEventListener('input', render);
+
+  function render(){
+    var hasPattern = !!state.pattern;
+    var hasLevers = state.levers.length > 0;
+    var ready = hasPattern && hasLevers;
+
+    $('emptyState').style.display = ready ? 'none' : 'block';
+    $('outFilled').style.display = ready ? 'block' : 'none';
+    $('oRule').style.display = ready ? 'block' : 'none';
+    $('copyBtn').disabled = !ready;
+    $('printBtn').disabled = !ready;
+
+    if(!ready) return;
+
+    var sit = $('sit').value.trim();
+    var when = $('when').value.trim();
+    var oSit = $('oSit');
+    if(sit){ oSit.textContent = sit; oSit.classList.remove('ph'); }
+    else { oSit.textContent = 'a moment you\u2019ll name in step 3'; oSit.classList.add('ph'); }
+    $('oWhen').textContent = when ? when : '';
+
+    var m = META[state.pattern];
+    $('oPatName').textContent = m.name;
+    $('oPatClin').textContent = m.clin;
+    $('otTag').textContent = sit ? 'ready' : 'draft';
+
+    var ul = $('oLevers');
+    ul.innerHTML = '';
+    state.levers.slice().sort(function(a,b){return a-b;}).forEach(function(i){
+      var lv = LEVERS[state.pattern][i];
+      var val = (state.detail[i] || '').trim();
+      var li = document.createElement('li');
+      li.innerHTML = '<div class="oln">'+lv.name+'</div>'+
+        (val ? '<div class="oln-do">\u2192 '+esc(val)+'</div>' : '')+
+        '<div class="olh">'+lv.how+'</div>';
+      ul.appendChild(li);
+    });
+  }
+
+  function plainText(){
+    var m = META[state.pattern];
+    var sit = $('sit').value.trim();
+    var when = $('when').value.trim();
+    var lines = [];
+    lines.push('MY UNSTICK PROTOCOL');
+    lines.push('');
+    lines.push('The stuck-point: ' + (sit || '(name one recurring moment)'));
+    if(when) lines.push('When it happens: ' + when);
+    lines.push('The pattern: ' + m.name + ' (' + m.clin + ')');
+    lines.push('');
+    lines.push('My levers:');
+    state.levers.slice().sort(function(a,b){return a-b;}).forEach(function(i){
+      var lv = LEVERS[state.pattern][i];
+      var val = (state.detail[i] || '').trim();
+      lines.push('  \u2022 ' + lv.name + (val ? ' \u2192 ' + val : ''));
+      lines.push('      ' + lv.how);
+    });
+    lines.push('');
+    lines.push('The rule: one situation, one week. Then keep what worked, drop what didn\u2019t, and only then take on the next thing.');
+    return lines.join('\n');
+  }
+
+  $('copyBtn').addEventListener('click', function(){
+    var txt = plainText();
+    var done = function(){
+      var c = $('copied'); c.classList.add('show');
+      setTimeout(function(){ c.classList.remove('show'); }, 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(function(){ fallbackCopy(txt); done(); });
+    } else { fallbackCopy(txt); done(); }
+  });
+
+  function fallbackCopy(txt){
+    var ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  }
+
+  $('printBtn').addEventListener('click', function(){ window.print(); });
+
+  $('resetBtn').addEventListener('click', function(){
+    clearTimers();
+    state = {pattern:null, levers:[], detail:{}};
+    patternBtns.forEach(function(b){ b.classList.remove('on'); b.setAttribute('aria-pressed','false'); });
+    delete document.body.dataset.pattern;
+    $('pickHint').classList.remove('gone');
+    $('step2').classList.add('locked');
+    $('step3').classList.add('locked');
+    leverList.innerHTML = '';
+    $('sit').value = ''; $('when').value = '';
+    updateCount();
+    render();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
